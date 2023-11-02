@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
 import userRouter from "./routes/userRoutes.js";
+import filmMaker from "./routes/filmMakerRoutes.js";
 
 dotenv.config();
 
@@ -24,6 +25,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // app.use("/", jobRouter);
 app.use("/", userRouter);
+app.use("/", filmMaker);
+
 // app.use("/", employerRouter);
 
 const corsOptions = {
