@@ -5,7 +5,6 @@ import jwt from "jsonwebtoken";
 export const checkAccessToken = (req, res, next) => {
   // Lấy AccessToken từ header hoặc từ cookie, tùy theo cách bạn triển khai
   const accessToken = req.headers.authorization || req.cookies.accessToken;
-
   if (!accessToken) {
     return res.status(401).json({ message: "Unauthorized" });
   }

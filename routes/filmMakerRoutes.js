@@ -387,5 +387,73 @@ filmMaker.put(
     }
   }
 );
+filmMaker.delete(
+  "/delete-video",
+  checkAccessToken,
+  async (req, res) => {
+    try {
+      const { id } = req.body;
+      const userWithMatchingId = await FilmMaker.findById(req.user.id);
+
+      // Kiểm tra xem video có tồn tại và thuộc về người dùng hiện tại hay không
+      const existingVideo = await Movies.findById(id);
+
+      if (!existingVideo) {
+        return res.status(404).json({ message: "Video not found." });
+      }
+
+      if (existingVideo.email !== userWithMatchingId.email) {
+        return res.status(403).json({
+          message: "You do not have permission to delete this video.",
+        });
+      }
+
+      // Xóa video từ Firebase Storage
+      const videoStorageRef = ref(storage, existingVideo.movies);
+      await deleteObject(videoStorageRef);
+
+      // Xóa video từ cơ sở dữ liệu
+      await Movies.findByIdAndRemove(videoId);
+
+      res.status(200).json({ message: "Video deleted successfully." });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+filmMaker.get("/movies-of-filmMaker", checkAccessToken, async (req, res) => {
+  try {
+    const userWithMatchingId = await FilmMaker.findById(req.user.id);
+    if (!userWithMatchingId) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const movies = await Movies.find({ email: userWithMatchingId.email });
+
+    res.status(200).json(movies);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+filmMaker.get("/all-movies", checkAccessToken, async (req, res) => {
+  try {
+    const userWithMatchingId = await FilmMaker.findById(req.user.id);
+
+    if (!userWithMatchingId) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (userWithMatchingId.isAdmin) {
+      const movies = await Movies.find();
+      res.status(200).json(movies);
+    } else {
+      return res
+        .status(403)
+        .json({ message: "Access denied. User is not an admin." });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default filmMaker;
