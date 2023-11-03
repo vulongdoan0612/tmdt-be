@@ -36,7 +36,7 @@ filmMaker.post("/register-filmMaker", async (req, res) => {
     const user = new FilmMaker({ username, password: hashedPassword, email });
     await user.save();
 
-    res.status(201).json({ message: "User registered successfully." });
+    res.status(201).json({ message: "Film maker registered successfully." });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -443,7 +443,7 @@ filmMaker.get("/all-movies", checkAccessToken, async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
-    if (userWithMatchingId.isAdmin) {
+    if (userWithMatchingId.isMaker) {
       const movies = await Movies.find();
       res.status(200).json(movies);
     } else {
@@ -455,5 +455,40 @@ filmMaker.get("/all-movies", checkAccessToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+filmMaker.delete(
+  "/delete-movie",
+  checkAccessToken,
+  async (req, res) => {
+    try {
+      const userWithMatchingId = await FilmMaker.findById(req.user.id);
+      const {id}=req.body
+      if (!userWithMatchingId) {
+        return res.status(404).json({ message: "User not found." });
+      }
+
+      if (userWithMatchingId.isMaker) {
+        const id = req.params.movieId;
+
+        // Kiểm tra xem movieId có tồn tại trong cơ sở dữ liệu
+        const existingMovie = await Movies.findById(id);
+
+        if (!existingMovie) {
+          return res.status(404).json({ message: "Movie not found." });
+        }
+
+        // Xóa movie khỏi cơ sở dữ liệu
+        await Movies.findByIdAndDelete(id);
+
+        res.status(200).json({ message: "Movie deleted successfully." });
+      } else {
+        return res
+          .status(403)
+          .json({ message: "Access denied. User is not an admin." });
+      }
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
 
 export default filmMaker;

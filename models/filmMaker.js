@@ -4,14 +4,17 @@ import bcrypt from "bcrypt";
 const filmMakerSchema = new mongoose.Schema({
   username: { type: String, required: true },
   email: { type: String, required: true },
-  password: { type: String, required: true },
-  isAdmin: { type: Boolean, default: false },
+  companyName: { type: String, required: false },
+  location:{type:String,required:false},
+  birthday: { type: String, required: false },
+  password: { type: String, required: false },
+  isMaker: { type: Boolean, default: false },
   confirmationCode: {
     type: String,
     default: null,
   },
+
   avatar: { type: String, default: null },
-  rank: { type: Number, default: 0 },
 });
 
 filmMakerSchema.methods.comparePassword = async function (password) {
