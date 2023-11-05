@@ -233,17 +233,16 @@ filmMaker.post(
   "/upload-video",
   checkAccessToken,
   upload.fields([
-    { name: "video", maxCount: 1 },
+    { name: "movies", maxCount: 1 },
     { name: "thumbnails", maxCount: 1 },
   ]),
   async (req, res) => {
     try {
-  
+      console.log(req.files)
       const { actor, dateRelease, movieName, author } = req.body;
-      console.log(req.files);
       const userId = req.user.id;
       const user = await FilmMaker.findById(userId);
-      const videoFile = req.files.video[0]; // Lấy video từ req.files
+      const videoFile = req.files.movies[0]; // Lấy video từ req.files
       const thumbnailsFile = req.files.thumbnails[0];
       // Tạo tên tệp duy nhất cho video (có thể sử dụng uuidv4 hoặc tên tệp tùy ý)
       const videoFileName = `videos/${user.email}/${movieName}/${uuidv4()}_${
@@ -394,14 +393,14 @@ filmMaker.delete(
     try {
       const { id } = req.body;
       const userWithMatchingId = await FilmMaker.findById(req.user.id);
-
       // Kiểm tra xem video có tồn tại và thuộc về người dùng hiện tại hay không
       const existingVideo = await Movies.findById(id);
+      console.log(existingVideo)
 
       if (!existingVideo) {
         return res.status(404).json({ message: "Video not found." });
       }
-
+      console.log(userWithMatchingId)
       if (existingVideo.email !== userWithMatchingId.email) {
         return res.status(403).json({
           message: "You do not have permission to delete this video.",
@@ -413,7 +412,7 @@ filmMaker.delete(
       await deleteObject(videoStorageRef);
 
       // Xóa video từ cơ sở dữ liệu
-      await Movies.findByIdAndRemove(videoId);
+      await Movies.findByIdAndRemove(id);
 
       res.status(200).json({ message: "Video deleted successfully." });
     } catch (error) {
@@ -442,7 +441,7 @@ filmMaker.get("/all-movies", checkAccessToken, async (req, res) => {
     if (!userWithMatchingId) {
       return res.status(404).json({ message: "User not found." });
     }
-
+    console.log(userWithMatchingId)
     if (userWithMatchingId.isMaker) {
       const movies = await Movies.find();
       res.status(200).json(movies);
@@ -455,8 +454,18 @@ filmMaker.get("/all-movies", checkAccessToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+filmMaker.post("/detail-movie",async (req, res) => {
+  try {
+    const {id}=req.body
+      const movies = await Movies.findById(id);
+      res.status(200).json(movies);
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 filmMaker.delete(
-  "/delete-movie",
+  "/delete-movie-foradmin",
   checkAccessToken,
   async (req, res) => {
     try {

@@ -8,7 +8,7 @@ const filmMakerSchema = new mongoose.Schema({
   location:{type:String,required:false},
   birthday: { type: String, required: false },
   password: { type: String, required: false },
-  isMaker: { type: Boolean, default: false },
+  isMaker: { type: Boolean, default: true },
   confirmationCode: {
     type: String,
     default: null,

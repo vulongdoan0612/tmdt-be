@@ -51,7 +51,7 @@ userRouter.post("/login", async (req, res) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (isPasswordValid) {
       const token = jwt.sign({ id: user._id }, "VinalinkGroup!2020", {
-        expiresIn: "1h",
+        expiresIn: "30d",
       });
       const refreshToken = jwt.sign({ id: user._id }, "YourRefreshSecretKey", {
         expiresIn: "7d",
