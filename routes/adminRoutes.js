@@ -1,5 +1,4 @@
 import express from "express";
-import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
@@ -11,53 +10,37 @@ import {
   ref,
   getDownloadURL,
   uploadBytesResumable,
-  deleteObject,
 } from "firebase/storage";
 import config from "../config/firebase.js";
 import multer from "multer";
-import FilmMaker from "../models/filmMaker.js";
+import Admin from "../models/admin.js";
+import User from "../models/userModel.js";
 import Movies from "../models/movies.js";
 
 initializeApp(config.firebaseConfig);
 const storage = getStorage();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const filmMaker = express.Router();
-filmMaker.post("/register-filmMaker", async (req, res) => {
-  const { username, password, email } = req.body;
+const adminRouter = express.Router();
 
-  try {
-    const existingUser = await FilmMaker.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "email already exists." });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new FilmMaker({ username, password: hashedPassword, email });
-    await user.save();
-
-    res.status(201).json({ message: "Film maker registered successfully." });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-filmMaker.post("/login-filmMaker", async (req, res) => {
+adminRouter.post("/login-admin", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await FilmMaker.findOne({ email });
+      const user = await Admin.findOne({ email });
+      console.log(user,email,password);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (isPasswordValid) {
+    const isPasswordValid = await bcrypt.compare(password, '987longvu123');
+    if (password === "987longvu123") {
       const token = jwt.sign({ id: user._id }, "VinalinkGroup!2020", {
-        expiresIn: "1h",
+        expiresIn: "30d",
       });
       const refreshToken = jwt.sign({ id: user._id }, "YourRefreshSecretKey", {
         expiresIn: "7d",
       });
-      res.status(200).json({ token, refreshToken, role: "filmMaker" });
+      res.status(200).json({ token, refreshToken, role: "user" });
     } else {
       res.status(401).json({ message: "Invalid password." });
     }
@@ -65,7 +48,7 @@ filmMaker.post("/login-filmMaker", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-filmMaker.post("/refresh-token-filmMaker", (req, res) => {
+adminRouter.post("/refresh-token", (req, res) => {
   const { refreshToken } = req.body;
 
   try {
@@ -88,12 +71,12 @@ const transporter = nodemailer.createTransport({
 });
 
 // Route để xử lý yêu cầu quên mật khẩu và gửi email xác nhận
-filmMaker.post("/reset-password-filmMaker", async (req, res) => {
+adminRouter.post("/reset-password", async (req, res) => {
   const { email, confirmationCode, newPassword } = req.body;
 
   try {
     // Tìm người dùng với email và mã reset password khớp
-    const user = await FilmMaker.findOne({ email, confirmationCode });
+    const user = await Admin.findOne({ email, confirmationCode });
     if (!user) {
       return res.status(404).json({ message: "Invalid reset code." });
     }
@@ -110,8 +93,8 @@ filmMaker.post("/reset-password-filmMaker", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-filmMaker.put(
-  "/change-profile-filmMaker",
+adminRouter.put(
+  "/change-profile",
   checkAccessToken,
   upload.single("avatar"),
   async (req, res) => {
@@ -122,7 +105,7 @@ filmMaker.put(
 
       // Kiểm tra xem người dùng đã tải lên hình ảnh avatar hay chưa
       if (req.file) {
-        const user = await FilmMaker.findById(userId);
+        const user = await Admin.findById(userId);
         const storageRef = ref(
           storage,
           `user-info/${user.email}/${req.file.originalname}`
@@ -149,7 +132,7 @@ filmMaker.put(
       if (userInfo) {
         updatedUserData.userInfo = userInfo;
       }
-      const updatedUser = await FilmMaker.findByIdAndUpdate(
+      const updatedUser = await Admin.findByIdAndUpdate(
         userId,
         updatedUserData,
         { new: true }
@@ -164,12 +147,12 @@ filmMaker.put(
   }
 );
 
-filmMaker.post("/forgot-password-filmMaker", async (req, res) => {
+adminRouter.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
 
   try {
     // Kiểm tra xem người dùng có tồn tại không
-    const user = await FilmMaker.findOne({ email });
+    const user = await Admin.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -216,21 +199,9 @@ const authenticateToken = (req, res, next) => {
     next();
   });
 };
-filmMaker.get("/profile-filmMaker", authenticateToken, async (req, res) => {
-  try {
-    const user = await FilmMaker.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-    const userWithoutPassword = { ...user.toObject() };
-    delete userWithoutPassword.password;
-    res.status(200).json({ user: userWithoutPassword });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-filmMaker.post(
-  "/upload-video",
+
+adminRouter.put(
+  "/update-video-admin", // Sử dụng videoId hoặc bất kỳ tham số xác định video nào
   checkAccessToken,
   upload.fields([
     { name: "movies", maxCount: 1 },
@@ -238,78 +209,14 @@ filmMaker.post(
   ]),
   async (req, res) => {
     try {
-      const { actor, dateRelease, movieName, author } = req.body;
-      const userId = req.user.id;
-      const user = await FilmMaker.findById(userId);
-      const videoFile = req.files.movies[0]; // Lấy video từ req.files
-      const thumbnailsFile = req.files.thumbnails[0];
-      // Tạo tên tệp duy nhất cho video (có thể sử dụng uuidv4 hoặc tên tệp tùy ý)
-      const videoFileName = `videos/${user.email}/${movieName}/${uuidv4()}_${
-        videoFile.originalname
-      }`;
-      const thumbnailsFileName = `videos/thumbnails/${
-        user.email
-      }/${movieName}/${uuidv4()}_${thumbnailsFile.originalname}`;
-      // Tạo một tham chiếu đến tệp trên Firebase Storage
-      const videoStorageRef = ref(storage, videoFileName);
-      const thumbnailsStorageRef = ref(storage, thumbnailsFileName);
-
-      // Tải lên video lên Firebase Storage
-      const snapshot = await uploadBytesResumable(
-        videoStorageRef,
-        videoFile.buffer
-      );
-      const thumb = await uploadBytesResumable(
-        thumbnailsStorageRef,
-        thumbnailsFile.buffer
-      );
-
-      // Lấy URL của video sau khi tải lên thành công
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      const downloadURLThumb = await getDownloadURL(thumb.ref);
-
-      // Lưu thông tin video vào cơ sở dữ liệu
-      const newMovie = new Movies({
-        author: author,
-        email: user.email,
-        movies: downloadURL, // Lưu URL của video
-        thumbnails: downloadURLThumb, // Bạn cần thêm thông tin thumnails tương tự
-        movieName: movieName,
-        actor: actor, // Lưu thông tin diễn viên
-        dateRelease: dateRelease, // Lưu thông tin ngày phát hành
-      });
-      await newMovie.save();
-      // Trả về URL của video để lưu trữ hoặc sử dụng trong ứng dụng của bạn
-      res.status(200).json({ newMovie });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-);
-filmMaker.put(
-  "/update-video", // Sử dụng videoId hoặc bất kỳ tham số xác định video nào
-  checkAccessToken,
-  upload.fields([
-    { name: "movies", maxCount: 1 },
-    { name: "thumbnails", maxCount: 1 },
-  ]),
-  async (req, res) => {
-    try {
-      const { actor, dateRelease, movieName, id, author } =
-        req.body;
+      const { actor, dateRelease, movieName, id, author } = req.body;
       // Tìm video theo videoId hoặc bất kỳ cách xác định video nào khác
       const existingVideo = await Movies.findById(id);
-      const userWithMatchingId = await FilmMaker.findById(req.user.id);
+      const userWithMatchingId = await User.findById(req.user.id);
       if (!existingVideo) {
         return res.status(404).json({ message: "Video not found." });
       }
-        console.log(existingVideo);
-      // Kiểm tra quyền sở hữu của video trước khi chỉnh sửa (nếu cần)
-      if (existingVideo.email !== userWithMatchingId.email) {
-        return res
-          .status(403)
-          .json({ message: "You do not have permission to edit this video." });
-      }
+
 
       // Xử lý tệp video mới nếu người dùng tải lên
       if (req.files.video) {
@@ -317,7 +224,7 @@ filmMaker.put(
 
         // Tạo tên tệp duy nhất cho video mới
         const videoFileName = `videos/${
-          userWithMatchingId.email
+          existingVideo.email
         }/${movieName}/${uuidv4()}_${videoFile.originalname}`;
 
         // Tạo một tham chiếu đến tệp trên Firebase Storage
@@ -342,7 +249,7 @@ filmMaker.put(
 
         // Tạo tên tệp duy nhất cho thumbnails mới
         const thumbnailsFileName = `videos/thumbnails/${
-          userWithMatchingId.email
+          existingVideo.email
         }/${movieName}/${uuidv4()}_${thumbnailsFile.originalname}`;
 
         // Tạo một tham chiếu đến tệp trên Firebase Storage
@@ -371,9 +278,9 @@ filmMaker.put(
       if (movieName) {
         existingVideo.movieName = movieName;
       }
- if (author) {
-   existingVideo.author = author;
- }
+      if (author) {
+        existingVideo.author = author;
+      }
       // Lưu thông tin video đã cập nhật vào cơ sở dữ liệu
       await existingVideo.save();
 
@@ -384,108 +291,14 @@ filmMaker.put(
     }
   }
 );
-filmMaker.delete(
-  "/delete-video",
-  checkAccessToken,
-  async (req, res) => {
-    try {
-      const { id } = req.body;
-      const userWithMatchingId = await FilmMaker.findById(req.user.id);
-      // Kiểm tra xem video có tồn tại và thuộc về người dùng hiện tại hay không
-      const existingVideo = await Movies.findById(id);
-      console.log(existingVideo)
 
-      if (!existingVideo) {
-        return res.status(404).json({ message: "Video not found." });
-      }
-      console.log(userWithMatchingId)
-      if (existingVideo.email !== userWithMatchingId.email) {
-        return res.status(403).json({
-          message: "You do not have permission to delete this video.",
-        });
-      }
 
-      // Xóa video từ Firebase Storage
-      const videoStorageRef = ref(storage, existingVideo.movies);
-      await deleteObject(videoStorageRef);
-
-      // Xóa video từ cơ sở dữ liệu
-      await Movies.findByIdAndRemove(id);
-
-      res.status(200).json({ message: "Video deleted successfully." });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-);
-filmMaker.get("/movies-of-filmMaker", checkAccessToken, async (req, res) => {
+adminRouter.get("/all-acc", async (req, res) => {
   try {
-    const userWithMatchingId = await FilmMaker.findById(req.user.id);
-    if (!userWithMatchingId) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    const movies = await Movies.find({ email: userWithMatchingId.email });
-
-    res.status(200).json(movies);
+    const acc = await User.find();
+    res.status(200).json(acc);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
-filmMaker.get("/all-movies", async (req, res) => {
-  try {
-
-      const movies = await Movies.find();
-      res.status(200).json(movies);
-    
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-filmMaker.post("/detail-movie",async (req, res) => {
-  try {
-    const {id}=req.body
-      const movies = await Movies.findById(id);
-      res.status(200).json(movies);
-    
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-filmMaker.delete(
-  "/delete-movie-foradmin",
-  checkAccessToken,
-  async (req, res) => {
-    try {
-      const userWithMatchingId = await User.findById(req.user.id);
-      const { id } = req.body
-      console.log(id,req.user.id)
-      if (!userWithMatchingId) {
-        return res.status(404).json({ message: "User not found." });
-      }
-
-      if (userWithMatchingId.isAdmin) {
-
-        // Kiểm tra xem movieId có tồn tại trong cơ sở dữ liệu
-        const existingMovie = await Movies.findById(id);
-        console.log(existingMovie);
-        if (!existingMovie) {
-          return res.status(404).json({ message: "Movie not found." });
-        }
-
-        // Xóa movie khỏi cơ sở dữ liệu
-        await Movies.findByIdAndDelete(id);
-
-        res.status(200).json({ message: "Movie deleted successfully." });
-      } else {
-        return res
-          .status(403)
-          .json({ message: "Access denied. User is not an admin." });
-      }
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  }
-);
-
-export default filmMaker;
+export default adminRouter;
