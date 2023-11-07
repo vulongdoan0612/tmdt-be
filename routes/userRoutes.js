@@ -229,4 +229,27 @@ userRouter.get("/profile", authenticateToken, async (req, res) => {
   }
 });
 
+userRouter.post("/buy-voucher", checkAccessToken, async (req, res) => {
+  try {
+    const { typeOfVoucher } = req.body;
+    const userId = req.user.id; // Lấy ID của người dùng từ mã thông báo xác thực hoặc nơi khác
+
+    // Tìm người dùng dựa trên userId
+    const user = await User.findById(userId);
+
+    // Kiểm tra xem người dùng đã mua voucher trước đây hay chưa
+    if (user.voucher === typeOfVoucher) {
+      return res.status(200).json({ message: "Bạn đã mua voucher trước đó." });
+    }
+
+      // Thực hiện các xử lý liên quan đến việc mua voucher, ví dụ: cộng điểm, trừ tiền, cài đặt voucher, v.v.
+      // Ở đây, tôi đơn giản là cập nhật giá trị voucher cho người dùng
+      user.voucher = typeOfVoucher;
+    await user.save();
+
+    res.status(200).json({ message: "Mua voucher thành công." });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 export default userRouter;

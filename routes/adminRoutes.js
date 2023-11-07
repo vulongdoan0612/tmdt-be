@@ -16,6 +16,7 @@ import multer from "multer";
 import Admin from "../models/admin.js";
 import User from "../models/userModel.js";
 import Movies from "../models/movies.js";
+import Voucher from "../models/voucher.js";
 
 initializeApp(config.firebaseConfig);
 const storage = getStorage();
@@ -301,4 +302,38 @@ adminRouter.get("/all-acc", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+adminRouter.get("/all-voucher", async (req, res) => {
+  try {
+    const acc = await Voucher.find();
+    res.status(200).json(acc);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+adminRouter.post("/create-voucher", async (req, res) => {
+  try {
+    const { detail, voucher } = req.body;
+    console.log(voucher,detail);
+    // Kiểm tra xem voucher đã tồn tại hay chưa bằng voucherCode
+    const existingVoucher = await Voucher.findOne({ voucher: voucher });
+
+    if (existingVoucher) {
+      return res.status(400).json({ message: "Voucher đã tồn tại." });
+    }
+
+    // Tạo một voucher mới dựa trên dữ liệu từ req.body
+    const newVoucher = new Voucher({
+      detail, // Dùng dữ liệu từ detail để tạo voucher
+      voucher: voucher,
+    });
+
+    await newVoucher.save();
+
+    res.status(200).json({ message: "Tạo voucher thành công." });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 export default adminRouter;
