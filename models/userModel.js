@@ -12,7 +12,13 @@ const userSchema = new mongoose.Schema({
   },
   avatar: { type: String, default: null },
   rank: { type: Number, default: 0 },
-  voucher: {type:String, default:null}
+  voucher: { type: String, default: 'vip0' },
+  historyBuy: [
+    {
+      date: { type: Date, default: Date.now },
+      typeOfVoucher: { type: String },
+    },
+  ],
 });
 
 userSchema.methods.comparePassword = async function (password) {

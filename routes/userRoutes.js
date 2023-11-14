@@ -16,7 +16,6 @@ import {
 import config from "../config/firebase.js";
 import multer from "multer";
 
-
 initializeApp(config.firebaseConfig);
 const storage = getStorage();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -242,12 +241,20 @@ userRouter.post("/buy-voucher", checkAccessToken, async (req, res) => {
       return res.status(200).json({ message: "Bạn đã mua voucher trước đó." });
     }
 
-      // Thực hiện các xử lý liên quan đến việc mua voucher, ví dụ: cộng điểm, trừ tiền, cài đặt voucher, v.v.
-      // Ở đây, tôi đơn giản là cập nhật giá trị voucher cho người dùng
-      user.voucher = typeOfVoucher;
+    // Thực hiện các xử lý liên quan đến việc mua voucher, ví dụ: cộng điểm, trừ tiền, cài đặt voucher, v.v.
+    // Ở đây, tôi đơn giản là cập nhật giá trị voucher cho người dùng
+    user.voucher = typeOfVoucher;
+    const transaction = {
+      date: new Date(),
+      typeOfVoucher: typeOfVoucher,
+    };
+    user.historyBuy.push(transaction);
     await user.save();
 
-    res.status(200).json({ message: "Mua voucher thành công." });
+    res.status(200).json({
+      message: "Mua voucher thành công.",
+      historyBuy: user.historyBuy, // Trả về lịch sử giao dịch
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

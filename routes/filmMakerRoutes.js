@@ -295,31 +295,30 @@ filmMaker.put(
   ]),
   async (req, res) => {
     try {
-      const { actor, dateRelease, movieName, id, author } =
-        req.body;
+      const { actor, dateRelease, movieName, id, author } = req.body;
       // Tìm video theo videoId hoặc bất kỳ cách xác định video nào khác
       const existingVideo = await Movies.findById(id);
       const userWithMatchingId = await FilmMaker.findById(req.user.id);
       if (!existingVideo) {
         return res.status(404).json({ message: "Video not found." });
       }
-        console.log(existingVideo);
+      console.log(existingVideo);
       // Kiểm tra quyền sở hữu của video trước khi chỉnh sửa (nếu cần)
       if (existingVideo.email !== userWithMatchingId.email) {
         return res
           .status(403)
           .json({ message: "You do not have permission to edit this video." });
       }
-
+      console.log(req.files.movies);
       // Xử lý tệp video mới nếu người dùng tải lên
-      if (req.files.video) {
-        const videoFile = req.files.video[0]; // Lấy video từ req.files
+      if (req.files.movies) {
+        const videoFile = req.files.movies[0]; // Lấy video từ req.files
 
         // Tạo tên tệp duy nhất cho video mới
         const videoFileName = `videos/${
           userWithMatchingId.email
         }/${movieName}/${uuidv4()}_${videoFile.originalname}`;
-
+        console.log(videoFileName);
         // Tạo một tham chiếu đến tệp trên Firebase Storage
         const videoStorageRef = ref(storage, videoFileName);
 
@@ -371,9 +370,9 @@ filmMaker.put(
       if (movieName) {
         existingVideo.movieName = movieName;
       }
- if (author) {
-   existingVideo.author = author;
- }
+      if (author) {
+        existingVideo.author = author;
+      }
       // Lưu thông tin video đã cập nhật vào cơ sở dữ liệu
       await existingVideo.save();
 
@@ -384,40 +383,36 @@ filmMaker.put(
     }
   }
 );
-filmMaker.delete(
-  "/delete-video",
-  checkAccessToken,
-  async (req, res) => {
-    try {
-      const { id } = req.body;
-      const userWithMatchingId = await FilmMaker.findById(req.user.id);
-      // Kiểm tra xem video có tồn tại và thuộc về người dùng hiện tại hay không
-      const existingVideo = await Movies.findById(id);
-      console.log(existingVideo)
+filmMaker.delete("/delete-video", checkAccessToken, async (req, res) => {
+  try {
+    const { id } = req.body;
+    const userWithMatchingId = await FilmMaker.findById(req.user.id);
+    // Kiểm tra xem video có tồn tại và thuộc về người dùng hiện tại hay không
+    const existingVideo = await Movies.findById(id);
+    console.log(existingVideo);
 
-      if (!existingVideo) {
-        return res.status(404).json({ message: "Video not found." });
-      }
-      console.log(userWithMatchingId)
-      if (existingVideo.email !== userWithMatchingId.email) {
-        return res.status(403).json({
-          message: "You do not have permission to delete this video.",
-        });
-      }
-
-      // Xóa video từ Firebase Storage
-      const videoStorageRef = ref(storage, existingVideo.movies);
-      await deleteObject(videoStorageRef);
-
-      // Xóa video từ cơ sở dữ liệu
-      await Movies.findByIdAndRemove(id);
-
-      res.status(200).json({ message: "Video deleted successfully." });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
+    if (!existingVideo) {
+      return res.status(404).json({ message: "Video not found." });
     }
+    console.log(userWithMatchingId);
+    if (existingVideo.email !== userWithMatchingId.email) {
+      return res.status(403).json({
+        message: "You do not have permission to delete this video.",
+      });
+    }
+
+    // Xóa video từ Firebase Storage
+    const videoStorageRef = ref(storage, existingVideo.movies);
+    await deleteObject(videoStorageRef);
+
+    // Xóa video từ cơ sở dữ liệu
+    await Movies.findByIdAndRemove(id);
+
+    res.status(200).json({ message: "Video deleted successfully." });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-);
+});
 filmMaker.get("/movies-of-filmMaker", checkAccessToken, async (req, res) => {
   try {
     const userWithMatchingId = await FilmMaker.findById(req.user.id);
@@ -434,20 +429,17 @@ filmMaker.get("/movies-of-filmMaker", checkAccessToken, async (req, res) => {
 });
 filmMaker.get("/all-movies", async (req, res) => {
   try {
-
-      const movies = await Movies.find();
-      res.status(200).json(movies);
-    
+    const movies = await Movies.find();
+    res.status(200).json(movies);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
-filmMaker.post("/detail-movie",async (req, res) => {
+filmMaker.post("/detail-movie", async (req, res) => {
   try {
-    const {id}=req.body
-      const movies = await Movies.findById(id);
-      res.status(200).json(movies);
-    
+    const { id } = req.body;
+    const movies = await Movies.findById(id);
+    res.status(200).json(movies);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -458,14 +450,13 @@ filmMaker.delete(
   async (req, res) => {
     try {
       const userWithMatchingId = await User.findById(req.user.id);
-      const { id } = req.body
-      console.log(id,req.user.id)
+      const { id } = req.body;
+      console.log(id, req.user.id);
       if (!userWithMatchingId) {
         return res.status(404).json({ message: "User not found." });
       }
 
       if (userWithMatchingId.isAdmin) {
-
         // Kiểm tra xem movieId có tồn tại trong cơ sở dữ liệu
         const existingMovie = await Movies.findById(id);
         console.log(existingMovie);

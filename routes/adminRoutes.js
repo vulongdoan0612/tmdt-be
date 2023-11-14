@@ -310,6 +310,30 @@ adminRouter.get("/all-voucher", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+adminRouter.put("/edit-voucher", async (req, res) => {
+  try {
+    const { newVoucherData,voucherId } = req.body; // Dữ liệu mới cho voucher
+
+    // Tìm voucher dựa trên voucherId
+    const voucher = await Voucher.findById(voucherId);
+
+    if (!voucher) {
+      return res.status(404).json({ message: "Voucher không tồn tại." });
+    }
+
+    // Cập nhật thông tin voucher với dữ liệu mới
+    voucher.set(newVoucherData);
+
+    // Lưu voucher đã cập nhật
+    await voucher.save();
+
+    res
+      .status(200)
+      .json({ message: "Sửa voucher thành công.", updatedVoucher: voucher });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 adminRouter.post("/create-voucher", async (req, res) => {
   try {
     const { detail, voucher } = req.body;
@@ -334,6 +358,24 @@ adminRouter.post("/create-voucher", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+adminRouter.delete("/delete-voucher", async (req, res) => {
+  try {
+    const voucherId = req.body; // Lấy voucherId từ URL
 
+    // Tìm voucher dựa trên voucherId
+    const voucher = await Voucher.findById(voucherId);
+
+    if (!voucher) {
+      return res.status(404).json({ message: "Voucher không tồn tại." });
+    }
+
+    // Xóa voucher
+    await voucher.remove();
+
+    res.status(200).json({ message: "Xóa voucher thành công." });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 export default adminRouter;
