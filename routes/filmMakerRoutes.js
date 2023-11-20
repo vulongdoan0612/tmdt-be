@@ -427,9 +427,18 @@ filmMaker.get("/movies-of-filmMaker", checkAccessToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-filmMaker.get("/all-movies", async (req, res) => {
+filmMaker.post("/all-movies", async (req, res) => {
   try {
-    const movies = await Movies.find();
+    const censorshipFilter = req.body.censorship;
+    let movies;
+    console.log(typeof censorshipFilter);
+
+    if (censorshipFilter !== undefined) {
+      movies = await Movies.find({ censorship: censorshipFilter });
+    } else {
+      movies = await Movies.find();
+    }
+
     res.status(200).json(movies);
   } catch (error) {
     res.status(500).json({ error: error.message });

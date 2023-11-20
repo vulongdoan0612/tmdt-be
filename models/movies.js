@@ -8,7 +8,7 @@ const moviesSchema = new mongoose.Schema({
   movies: { type: String },
   thumbnails: { type: String },
   movieName: { type: String },
-
+  censorship:{type:String, default:false},
   actor: { type: Object },
   dateRelease: { type: String },
 });

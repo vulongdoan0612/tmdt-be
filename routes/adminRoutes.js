@@ -377,5 +377,23 @@ adminRouter.delete("/delete-voucher", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+adminRouter.post("/update-movie-censorship", async (req, res) => {
+  try {
+    const { idMovie, censorship } = req.body;
 
+    // Tìm kiếm và cập nhật bản ghi
+    const movie = await Movies.findById(idMovie);
+
+    if (!movie) {
+      return res.status(404).json({ message: "Movie not found" });
+    }
+
+    movie.censorship = censorship;
+    await movie.save();
+
+    res.status(200).json({ message: "Movie updated successfully", movie });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 export default adminRouter;
