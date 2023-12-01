@@ -9,6 +9,7 @@ const filmMakerSchema = new mongoose.Schema({
   birthday: { type: String, required: false },
   password: { type: String, required: false },
   isMaker: { type: Boolean, default: true },
+  category:{type:Object},
   confirmationCode: {
     type: String,
     default: null,

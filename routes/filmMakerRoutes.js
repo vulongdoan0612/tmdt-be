@@ -17,6 +17,8 @@ import config from "../config/firebase.js";
 import multer from "multer";
 import FilmMaker from "../models/filmMaker.js";
 import Movies from "../models/movies.js";
+import Comment from "../models/comment.js";
+import Star from "../models/star.js";
 
 initializeApp(config.firebaseConfig);
 const storage = getStorage();
@@ -487,5 +489,96 @@ filmMaker.delete(
     }
   }
 );
+filmMaker.post("/post-comment", async (req, res) => {
+   try {
+     const { idMovie, username, comment, avatar } = req.body;
+    console.log(req.body)
+     // Tạo một comment mới
+     const newComment = new Comment({
+       idMovie,
+       username,
+       comment,
+       avatar
+     });
 
+     // Lưu comment vào cơ sở dữ liệu
+     await newComment.save();
+
+     res
+       .status(201)
+       .json({ message: "Comment posted successfully.", comment: newComment });
+   } catch (error) {
+     res.status(500).json({ error: error.message });
+   }
+})
+filmMaker.post("/post-star", async (req, res) => {
+  try {
+    const { idMovie, username, star } = req.body;
+
+    // Kiểm tra xem nếu có dữ liệu star cũ
+    const existingStar = await Star.findOne({ idMovie, username });
+    console.log(existingStar);
+    if (existingStar) {
+      // Nếu tồn tại, xoá dữ liệu cũ
+      await Star.deleteOne({ idMovie, username });
+    }
+
+    // Tạo một star mới
+    const newStar = new Star({
+      idMovie,
+      username,
+      star,
+    });
+
+    // Lưu star vào cơ sở dữ liệu
+    await newStar.save();
+
+    res
+      .status(201)
+      .json({ message: "Star posted successfully.", star: newStar });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+filmMaker.post("/get-comment", async (req, res) => {
+  try {
+    const { idMovie } = req.body;
+    console.log(idMovie);
+    // Tạo một comment mới
+     const comments = await Comment.find({ idMovie });
+
+
+    // Lưu comment vào cơ sở dữ liệu
+    res.status(200).json({ comment: comments });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+filmMaker.post("/get-star", async (req, res) => {
+   try {
+     const {idMovie} = req.body;
+
+     // Tìm tất cả các đánh giá có idMovie khớp với tham số
+     const ratings = await Star.find({ idMovie });
+    console.log(ratings);
+     if (ratings.length === 0) {
+       return res
+         .status(404)
+         .json({ message: "Không có đánh giá cho idMovie này." });
+     }
+
+     // Tính toán đánh giá trung bình
+     const totalStars = ratings.reduce(
+       (sum, rating) => sum + parseInt(rating.star),
+       0
+     );
+     const averageRating = totalStars / ratings.length;
+
+     res.status(200).json({ averageRating: averageRating });
+   } catch (error) {
+     res.status(500).json({ error: error.message });
+   }
+});
 export default filmMaker;
