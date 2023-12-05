@@ -578,24 +578,35 @@ filmMaker.post("/add-fav", async (req, res) => {
   try {
     const { idMovie, userId } = req.body;
 
-    // Find the user based on userId
+    // Tìm người dùng dựa trên userId
     const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // Check if the movie already exists in the favMovie array
+    // Tìm thông tin phim dựa trên idMovie
+    const movie = await Movies.findById(idMovie);
+
+    if (!movie) {
+      return res.status(404).json({ message: "Movie not found." });
+    }
+
+    // Kiểm tra xem phim đã có trong mảng favMovie hay chưa
     const isMovieExist = user.favMovie.some((movie) => movie.id === idMovie);
 
     if (isMovieExist) {
-      return res.status(400).json({ message: "Movie already in favorites." });
+      return res.status(200).json({ message: "Movie already in favorites." });
     }
 
-    // Add the movie to the favMovie array
-    user.favMovie.push({ id: idMovie });
+    // Thêm phim vào mảng favMovie
+    user.favMovie.push({
+      id: idMovie,
+      thumbnail: movie.thumbnails,
+      movieName: movie.movieName,
+    });
 
-    // Save the user with the updated favMovie array
+    // Lưu người dùng với mảng favMovie đã cập nhật
     await user.save();
 
     res
@@ -603,6 +614,38 @@ filmMaker.post("/add-fav", async (req, res) => {
       .json({ message: "Movie added to favorites successfully.", user });
   } catch (error) {
     console.error("Error adding favorite movie:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+filmMaker.delete("/remove-fav", async (req, res) => {
+  try {
+    const { idMovie, userId } = req.body;
+
+    // Tìm người dùng dựa trên userId
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Kiểm tra xem phim có trong mảng favMovie hay không
+    const isMovieExist = user.favMovie.some((movie) => movie.id === idMovie);
+
+    if (!isMovieExist) {
+      return res.status(404).json({ message: "Movie not in favorites." });
+    }
+
+    // Xóa phim khỏi mảng favMovie
+    user.favMovie = user.favMovie.filter((movie) => movie.id !== idMovie);
+
+    // Lưu người dùng với mảng favMovie đã cập nhật
+    await user.save();
+
+    res
+      .status(200)
+      .json({ message: "Movie removed from favorites successfully.", user });
+  } catch (error) {
+    console.error("Error removing favorite movie:", error);
     res.status(500).json({ error: error.message });
   }
 });
