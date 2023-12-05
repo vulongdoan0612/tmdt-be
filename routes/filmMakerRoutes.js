@@ -490,27 +490,27 @@ filmMaker.delete(
   }
 );
 filmMaker.post("/post-comment", async (req, res) => {
-   try {
-     const { idMovie, username, comment, avatar } = req.body;
-    console.log(req.body)
-     // Tạo một comment mới
-     const newComment = new Comment({
-       idMovie,
-       username,
-       comment,
-       avatar
-     });
+  try {
+    const { idMovie, username, comment, avatar } = req.body;
+    console.log(req.body);
+    // Tạo một comment mới
+    const newComment = new Comment({
+      idMovie,
+      username,
+      comment,
+      avatar,
+    });
 
-     // Lưu comment vào cơ sở dữ liệu
-     await newComment.save();
+    // Lưu comment vào cơ sở dữ liệu
+    await newComment.save();
 
-     res
-       .status(201)
-       .json({ message: "Comment posted successfully.", comment: newComment });
-   } catch (error) {
-     res.status(500).json({ error: error.message });
-   }
-})
+    res
+      .status(201)
+      .json({ message: "Comment posted successfully.", comment: newComment });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 filmMaker.post("/post-star", async (req, res) => {
   try {
     const { idMovie, username, star } = req.body;
@@ -546,39 +546,64 @@ filmMaker.post("/get-comment", async (req, res) => {
     const { idMovie } = req.body;
     console.log(idMovie);
     // Tạo một comment mới
-     const comments = await Comment.find({ idMovie });
-
+    const comments = await Comment.find({ idMovie });
 
     // Lưu comment vào cơ sở dữ liệu
     res.status(200).json({ comment: comments });
-
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 filmMaker.post("/get-star", async (req, res) => {
-   try {
-     const {idMovie} = req.body;
+  try {
+    const { idMovie } = req.body;
 
-     // Tìm tất cả các đánh giá có idMovie khớp với tham số
-     const ratings = await Star.find({ idMovie });
-    console.log(ratings);
-     if (ratings.length === 0) {
-       return res
-         .status(404)
-         .json({ message: "Không có đánh giá cho idMovie này." });
-     }
+    // Tìm tất cả các đánh giá có idMovie khớp với tham số
+    const ratings = await Star.find({ idMovie });
 
-     // Tính toán đánh giá trung bình
-     const totalStars = ratings.reduce(
-       (sum, rating) => sum + parseInt(rating.star),
-       0
-     );
-     const averageRating = totalStars / ratings.length;
+    // Tính toán đánh giá trung bình
+    const totalStars = ratings.reduce(
+      (sum, rating) => sum + parseInt(rating.star),
+      0
+    );
+    console.log(totalStars, ratings,'ccccc');
+    const averageRating = totalStars / ratings.length;
 
-     res.status(200).json({ averageRating: averageRating });
-   } catch (error) {
-     res.status(500).json({ error: error.message });
-   }
+    res.status(200).json({ averageRating: averageRating });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+filmMaker.post("/add-fav", async (req, res) => {
+  try {
+    const { idMovie, userId } = req.body;
+
+    // Find the user based on userId
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Check if the movie already exists in the favMovie array
+    const isMovieExist = user.favMovie.some((movie) => movie.id === idMovie);
+
+    if (isMovieExist) {
+      return res.status(400).json({ message: "Movie already in favorites." });
+    }
+
+    // Add the movie to the favMovie array
+    user.favMovie.push({ id: idMovie });
+
+    // Save the user with the updated favMovie array
+    await user.save();
+
+    res
+      .status(200)
+      .json({ message: "Movie added to favorites successfully.", user });
+  } catch (error) {
+    console.error("Error adding favorite movie:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 export default filmMaker;
