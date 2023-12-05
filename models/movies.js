@@ -8,6 +8,7 @@ const moviesSchema = new mongoose.Schema({
   movies: { type: String },
   thumbnails: { type: String },
   movieName: { type: String },
+  category: { type: String },
   // comments:[{type:Object}],
   censorship:{type:String, default:false},
   actor: { type: Object },

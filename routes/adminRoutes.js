@@ -210,7 +210,7 @@ adminRouter.put(
   ]),
   async (req, res) => {
     try {
-      const { actor, dateRelease, movieName, id, author } = req.body;
+      const { actor, dateRelease, movieName, id, author,category } = req.body;
       // Tìm video theo videoId hoặc bất kỳ cách xác định video nào khác
       const existingVideo = await Movies.findById(id);
       const userWithMatchingId = await User.findById(req.user.id);
@@ -272,6 +272,9 @@ adminRouter.put(
       // Cập nhật các thông tin khác của video nếu cần
       if (actor) {
         existingVideo.actor = actor;
+      }
+      if (category) {
+        existingVideo.category = actor;
       }
       if (dateRelease) {
         existingVideo.dateRelease = dateRelease;

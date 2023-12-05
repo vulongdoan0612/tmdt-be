@@ -240,7 +240,7 @@ filmMaker.post(
   ]),
   async (req, res) => {
     try {
-      const { actor, dateRelease, movieName, author } = req.body;
+      const { actor, dateRelease, movieName, author ,category} = req.body;
       const userId = req.user.id;
       const user = await FilmMaker.findById(userId);
       const videoFile = req.files.movies[0]; // Lấy video từ req.files
@@ -274,7 +274,8 @@ filmMaker.post(
       const newMovie = new Movies({
         author: author,
         email: user.email,
-        movies: downloadURL, // Lưu URL của video
+        movies: downloadURL, 
+        category:category,// Lưu URL của video
         thumbnails: downloadURLThumb, // Bạn cần thêm thông tin thumnails tương tự
         movieName: movieName,
         actor: actor, // Lưu thông tin diễn viên
@@ -297,7 +298,7 @@ filmMaker.put(
   ]),
   async (req, res) => {
     try {
-      const { actor, dateRelease, movieName, id, author } = req.body;
+      const { actor, dateRelease, movieName, id, author,category } = req.body;
       // Tìm video theo videoId hoặc bất kỳ cách xác định video nào khác
       const existingVideo = await Movies.findById(id);
       const userWithMatchingId = await FilmMaker.findById(req.user.id);
@@ -366,6 +367,9 @@ filmMaker.put(
       if (actor) {
         existingVideo.actor = actor;
       }
+      if (category) {
+        existingVideo.actor = category;
+      }
       if (dateRelease) {
         existingVideo.dateRelease = dateRelease;
       }
@@ -432,20 +436,28 @@ filmMaker.get("/movies-of-filmMaker", checkAccessToken, async (req, res) => {
 filmMaker.post("/all-movies", async (req, res) => {
   try {
     const censorshipFilter = req.body.censorship;
-    let movies;
-    console.log(typeof censorshipFilter);
+    const categoryFilter = req.body.value; // Đọc giá trị filter từ req.body
+    let queryConditions = {};
 
+    // Thêm điều kiện lọc cho censorship nếu nó được cung cấp
     if (censorshipFilter !== undefined) {
-      movies = await Movies.find({ censorship: censorshipFilter });
-    } else {
-      movies = await Movies.find();
+      queryConditions.censorship = censorshipFilter;
     }
+
+    // Thêm điều kiện lọc cho category nếu nó được cung cấp
+    if (categoryFilter !== undefined) {
+      queryConditions.category = categoryFilter;
+    }
+    console.log(queryConditions)
+    // Thực hiện truy vấn với các điều kiện lọc đã xác định
+    let movies = await Movies.find(queryConditions);
 
     res.status(200).json(movies);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 filmMaker.post("/detail-movie", async (req, res) => {
   try {
     const { id } = req.body;
