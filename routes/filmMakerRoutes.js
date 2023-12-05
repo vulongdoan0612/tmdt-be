@@ -444,11 +444,13 @@ filmMaker.post("/all-movies", async (req, res) => {
       queryConditions.censorship = censorshipFilter;
     }
 
-    // Thêm điều kiện lọc cho category nếu nó được cung cấp
-    if (categoryFilter !== undefined) {
+    // Thêm điều kiện lọc cho category chỉ khi categoryFilter không phải là chuỗi rỗng
+    if (categoryFilter !== undefined && categoryFilter !== "") {
       queryConditions.category = categoryFilter;
     }
-    console.log(queryConditions)
+    
+    console.log(queryConditions);
+    
     // Thực hiện truy vấn với các điều kiện lọc đã xác định
     let movies = await Movies.find(queryConditions);
 
