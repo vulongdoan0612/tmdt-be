@@ -252,7 +252,7 @@ userRouter.post("/buy-voucher", checkAccessToken, async (req, res) => {
     await user.save();
 
     res.status(200).json({
-      message: "Mua voucher thành công.",
+      message: "Mua Gói thành công.",
       historyBuy: user.historyBuy, // Trả về lịch sử giao dịch
     });
   } catch (error) {
